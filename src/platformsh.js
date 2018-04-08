@@ -1,67 +1,119 @@
-let jsonConfig;
+class PlatformSh {
+  constructor() {
+    const envVars = Object.keys(process.env);
+    if (
+      envVars.find(envVar => {
+        return envVar.match(/PLATFORM\.*/);
+      })
+    ) {
+      this._application = this.getVar("PLATFORM_APPLICATION", true);
+      this._relationships = this.getVar("PLATFORM_RELATIONSHIPS", true);
+      this._variables = this.getVar("PLATFORM_VARIABLES", true);
+      this._routes = this.getVar("PLATFORM_ROUTES", true);
+      this._application_name = this.getVar("PLATFORM_APPLICATION_NAME");
+      this._app_dir = this.getVar("PLATFORM_APP_DIR");
+      this._environment = this.getVar("PLATFORM_ENVIRONMENT");
+      this._project = this.getVar("PLATFORM_PROJECT");
+      this._tree_id = this.getVar("PLATFORM_TREE_ID");
+      this._project_entropy = this.getVar("PLATFORM_PROJECT_ENTROPY");
+      this._branch = this.getVar("PLATFORM_BRANCH");
+      this._document_root = this.getVar("PLATFORM_DOCUMENT_ROOT");
+      this._port = this.getVar("PORT");
+      this._omp_num_threads = this.numberOfCpus();
+      this._psh = true;
+    }
+  }
 
-try{
-  jsonConfig = require('/run/config.json');
-} catch(err) {
-  // Mocking data in dev mode
-  jsonConfig = {
-    info: {
-      limits: {
-        cpu: 1
+  numberOfCpus = () => {
+    try {
+      if (process.env["OMP_NUM_THREADS"]) {
+        return process.env["OMP_NUM_THREADS"];
+      } else {
+        return Math.ceil(require("/run/config.json").info.limits.cpu);
       }
+    } catch (err) {
+      // Mocking data in dev mode.
+      return 1;
     }
   };
+
+  getVar(name, base64 = false) {
+    try {
+      return base64
+        ? JSON.parse(Buffer.from(process.env[name], "base64").toString())
+        : process.env[name];
+    } catch (e) {
+      return "{}";
+    }
+  }
+
+  getApplication() {
+    return this._application;
+  }
+
+  getApplicationName() {
+    return this._application_name;
+  }
+
+  getApplicationDir() {
+    return this._app_dir;
+  }
+
+  getApplicationRoutes(appId) {
+    return (
+      Object.entries(this._routes).find(([url, appInfo]) => {
+        return appInfo.upstream === appId;
+      }) || []
+    );
+  }
+
+  getBranch() {
+    return this._branch;
+  }
+
+  getDocumentRoot() {
+    return this._document_root;
+  }
+
+  getEnvironment() {
+    return this._environment;
+  }
+
+  getOmpNumThreads() {
+    return this._omp_num_threads;
+  }
+
+  getPort() {
+    return this._port;
+  }
+
+  getProject() {
+    return this._project;
+  }
+
+  getProjectEntropy() {
+    return this._project_entropy;
+  }
+
+  getRelationships() {
+    return this._relationships;
+  }
+
+  getRoutes() {
+    return this._routes;
+  }
+
+  getTreeId() {
+    return this._tree_id;
+  }
+
+  getVariables() {
+    return this._variables;
+  }
+
+  isOnPlatform() {
+    return this._psh;
+  }
 }
-/**
-* Read number of CPUs from environment or fallback to the _private_ configuration property
-* Useful for determining the number of processes to fork.
-*/
-function num_of_cpus() {
-  try {
-    if(process.env['OMP_NUM_THREADS']) {
-      return process.env['OMP_NUM_THREADS'];
-    }
 
-    return Math.ceil(jsonConfig.info.limits.cpu);
-  } catch (err) {
-    throw new Error('Could not get number of cpus');
-  }
-};
-
-function read_base64_json(varName) {
-  try {
-    return JSON.parse(new Buffer(process.env[varName], 'base64').toString());
-  } catch (err) {
-    throw new Error(`no ${varName} environment variable`);
-  }
-};
-
-/**
-* Reads Platform.sh configuration from environment and returns a single object
-*/
-function config() {
-  if(!process.env.PLATFORM_PROJECT) {
-    throw Error('This is not running on platform.sh');
-  }
-
-  return {
-    application: read_base64_json('PLATFORM_APPLICATION'),
-    relationships: read_base64_json('PLATFORM_RELATIONSHIPS'),
-    variables: read_base64_json('PLATFORM_VARIABLES'),
-    application_name: process.env.PLATFORM_APPLICATION_NAME,
-    app_dir: process.env.PLATFORM_APP_DIR,
-    environment: process.env.PLATFORM_ENVIRONMENT,
-    project: process.env.PLATFORM_PROJECT,
-    routes: read_base64_json('PLATFORM_ROUTES'),
-    tree_id: process.env.PLATFORM_TREE_ID,
-    project_entropy: process.env.PLATFORM_PROJECT_ENTROPY,
-    branch: process.env.PLATFORM_BRANCH,
-    document_root: process.env.PLATFORM_DOCUMENT_ROOT,
-    port: process.env.PORT,
-    omp_num_threads: num_of_cpus()
-  };
-};
-
-module.exports = {
-  config
-};
+export default new PlatformSh();

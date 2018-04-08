@@ -1,17 +1,24 @@
 # platformsh-nodejs-helper
 
-Helper for running nodejs applications on Platform.sh.
+Helper for Node.js applications running on Platform.sh.
 
 ## Purpose
 
 Reads [Platform.sh configuration](https://docs.platform.sh/development/variables.html) from environment and returns a single object.
 
 ## Usage:
+
 ```bash
-npm install platformsh --save
+npm install platformsh || yarn add platformsh
 ```
+
 And in your code:
 
 ```javascript
-const config = require('platformsh').config();
+import psh from "platformsh";
+
+if (psh.isOnPlatform()) {
+  // use "psh" as you like
+  myVar = psh.getVariables().myVar;
+}
 ```
